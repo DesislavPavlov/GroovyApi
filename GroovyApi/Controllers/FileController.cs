@@ -15,25 +15,25 @@ namespace GroovyApi.Controllers
         }
 
 
-        [HttpPost("upload")]
-        public async Task<IActionResult> UploadFile(IFormFile file)
+        [HttpGet("avatars")]
+        public ActionResult GetAvatars()
         {
-            var filePath = await _fileService.SaveFileAsync(file);
-            return filePath != null ? Ok(new { filePath }) : BadRequest("Invalid file upload!");
-        }
+            //List<FileStream> files = new List<FileStream>();
+            ////files.Add(_fileService.GetFile("avatar_admin.webp"));
+            ////files.Add(_fileService.GetFile("avatar_guest.webp"));
+            //files.Add(_fileService.GetFile("avatar_guitar.webp"));
+            //files.Add(_fileService.GetFile("avatar_normal.webp"));
+            //files.Add(_fileService.GetFile("avatar_rock.webp"));
+            //files.Add(_fileService.GetFile("avatar_singer.webp"));
 
-
-        [HttpGet("{fileName}")]
-        public IActionResult GetFile(string fileName)
-        {
-            var fileStream = _fileService.GetFile(fileName);
-            return fileStream != null ? File(fileStream, "application/octet-stream", fileName) : NotFound("File not found!");
-        }
-
-        [HttpDelete("{fileName}")]
-        public IActionResult DeleteFile(string fileName)
-        {
-            return _fileService.DeleteFile(fileName) ? Ok("File deleted successfully!") : NotFound("File not found!");
+            string[] urls = new string[]
+            {
+                "https://localhost:7021/uploads/avatar_guitar.webp",
+                "https://localhost:7021/uploads/avatar_normal.webp",
+                "https://localhost:7021/uploads/avatar_rock.webp",
+                "https://localhost:7021/uploads/avatar_singer.webp",
+            };
+            return Ok(urls);
         }
     }
 }

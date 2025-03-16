@@ -15,10 +15,48 @@ namespace GroovyApi.Services
 
 
         // Read
-        public DataTable GetUsers()
+        public List<User> GetUsers()
         {
-            DataTable users = SelectQuery("SELECT * FROM user_info");
-            return users;
+            DataTable dt = SelectQuery("SELECT * FROM user_info");
+            IEnumerable<User> enumerable = dt.AsEnumerable()
+              .Select(userRow => new User
+              {
+                  Id = int.Parse(userRow["user_id"].ToString()),
+                  Username = userRow["username"].ToString(),
+                  Email = userRow["email"].ToString(),
+                  Password_Hash = userRow["password_hash"].ToString(),
+                  AvatarUrl = userRow["avatar_url"].ToString(),
+                  CreatedAt = DateTime.Parse(userRow["created_at"].ToString()),
+              });
+
+            List<User> list = enumerable.ToList();
+            return list;
+        }
+        public User GetUserById(int id)
+        {
+            Dictionary<string, object> parameters = new Dictionary<string, object>
+            {
+                { "@Id", id }
+            };
+            DataTable userDT = SelectQuery($"SELECT * FROM user_info WHERE user_id = @Id", parameters);
+
+            if (userDT.Rows.Count == 0)
+            {
+                return null;
+            }
+            DataRow userRow = userDT.Rows[0];
+
+            User user = new User()
+            {
+                Id = int.Parse(userRow["user_id"].ToString()),
+                Username = userRow["username"].ToString(),
+                Email = userRow["email"].ToString(),
+                Password_Hash = userRow["password_hash"].ToString(),
+                AvatarUrl = userRow["avatar_url"].ToString(),
+                CreatedAt = DateTime.Parse(userRow["created_at"].ToString()),
+            };
+
+            return user;
         }
         public User GetUserByUserName(string userName)
         {
@@ -165,14 +203,25 @@ namespace GroovyApi.Services
             List<Song> list = enumerable.ToList();
             return list;
         }
-        public DataTable GetArtistsOfSong(int songId)
+        public List<Artist> GetArtistsOfSong(int songId)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
             {
                 { "@SongId", songId }
             };
-            DataTable songs = SelectQuery("SELECT * FROM artist JOIN song_artist ON artist.artist_id = song_artist.artist_id WHERE song_artist.song_id = @SongId", parameters);
-            return songs;
+
+            DataTable dt = SelectQuery("SELECT * FROM artist JOIN song_artist ON artist.artist_id = song_artist.artist_id WHERE song_artist.song_id = @SongId", parameters);
+            IEnumerable<Artist> enumerable = dt.AsEnumerable()
+              .Select(row => new Artist
+              {
+                  Id = row.Field<int>("artist_id"),
+                  Name = row.Field<string>("name"),
+                  Color = row.Field<string>("color"),
+                  ImageUrl = row.Field<string>("image_url")
+              });
+
+            List<Artist> list = enumerable.ToList();
+            return list;
         }
         public List<Artist> GetArtistsOfGenre(int genreId)
         {

@@ -23,6 +23,33 @@ namespace GroovyApi.Controllers
             return Ok(songs);
         }
 
+        [HttpGet("{id}")]
+        public ActionResult<Song> GetSongById(int id)
+        {
+            Song song = _databaseService.GetSongById(id);
+            return Ok(song);
+        }
+
+        [HttpGet]
+        [Route("{id}/related")]
+        public ActionResult<List<Song>> GetRelatedSongs(int id)
+        {
+            List<Artist> artists = _databaseService.GetArtistsOfSong(id);
+            List<int> artistIds = artists.Select(a => a.Id).ToList();
+
+            List<Song> songs = _databaseService.GetSongsOfArtists(artistIds);
+
+            Random rng = new Random();
+            while (songs.Count > 5)
+            {
+                int deleteIndex = rng.Next(songs.Count);
+                songs.RemoveAt(deleteIndex);
+            }
+
+            return songs;
+        }
+
+
         [HttpPost]
         public async Task<ActionResult> AddSong([FromForm] AddSongModel addSongModel)
         {
@@ -41,7 +68,7 @@ namespace GroovyApi.Controllers
             {
                 return BadRequest(new { error = "Error adding song to song table" });
             }
-            song.Id = songId;
+            addSongModel.Id = songId;
 
             // Add song to artist relations
             List<int> addedArtistIds = _databaseService.AddSongArtists(songId, addSongModel.ArtistIds);
@@ -68,7 +95,7 @@ namespace GroovyApi.Controllers
                 return BadRequest(new { error = "Error uploading song audio." });
             }
 
-            return CreatedAtAction(nameof(GetSongs), new { id = songId }, song);
+            return CreatedAtAction(nameof(GetSongs), new { id = songId }, addSongModel);
         }
 
         [HttpDelete]

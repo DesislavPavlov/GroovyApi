@@ -31,7 +31,7 @@ namespace GroovyApi.Controllers
             {
                 Name = addArtistModel.Name,
                 Color = addArtistModel.Color,
-                ImageUrl = addArtistModel.Image.FileName
+                ImageUrl = "https://localhost:7021/uploads/" + addArtistModel.Image.FileName
             };
 
             // Add to artist table
@@ -40,7 +40,7 @@ namespace GroovyApi.Controllers
             {
                 return BadRequest(new { error = "Error adding artist to artist table" });
             }
-            artist.Id = artistId;
+            addArtistModel.Id = artistId;
 
             // Add artist to genre relations
             List<int> addedGenreIds = _databaseService.AddArtistGenres(artistId, addArtistModel.GenreIds);
@@ -55,7 +55,7 @@ namespace GroovyApi.Controllers
                 return BadRequest(new { error = "Image uploading error." });
             }
 
-            return CreatedAtAction(nameof(GetArtists), new { id = artistId }, artist);
+            return CreatedAtAction(nameof(GetArtists), new { id = artistId }, addArtistModel);
         }
 
         [HttpDelete]
@@ -85,12 +85,5 @@ namespace GroovyApi.Controllers
 
             return NoContent();
         }
-
-
-
-
-
-        // Development
-
     }
 }
