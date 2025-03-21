@@ -36,6 +36,19 @@ namespace GroovyApi.Controllers
             return CreatedAtAction(nameof(GetGenres), new { id = genreId }, genre);
         }
 
+        [HttpPut]
+        [Route("{id}")]
+        public ActionResult UpdateGenre(int id, [FromBody] Genre genre)
+        {
+            bool success = _databaseService.UpdateGenre(id, genre);
+            if (!success)
+            {
+                return BadRequest(new { error = "Invalid genre id or new genre model." });
+            }
+
+            return NoContent();
+        }
+
         [HttpDelete]
         [Route("{id}")]
         public ActionResult DeleteGenre(int id)

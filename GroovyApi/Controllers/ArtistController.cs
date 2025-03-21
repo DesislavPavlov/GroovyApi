@@ -1,6 +1,7 @@
 ﻿using GroovyApi.Models;
 using GroovyApi.Services;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace GroovyApi.Controllers
 {
@@ -23,39 +24,94 @@ namespace GroovyApi.Controllers
             return Ok(artists);
         }
 
-        [HttpPost]
-        public async Task<ActionResult> AddArtist([FromForm] AddArtistModel addArtistModel)
+        [HttpGet]
+        [Route("genres")]
+        public ActionResult<Dictionary<int, List<int>>> GetArtistGenreRelations()
         {
+            List<int> artistIds = _databaseService.GetArtists().Select(a => a.Id).ToList();
+            if (artistIds == null || artistIds.Count == 0)
+            {
+                return NotFound(new { error = "No artists in database" });
+            }
+
+            Dictionary<int, List<int>> dict = _databaseService.GetGenreIdsOfArtists(artistIds);
+            if (dict == null)
+            {
+                return Ok(new Dictionary<int, List<int>>());
+            }
+
+            return Ok(dict);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult> AddArtist([FromForm] string name, [FromForm] string color, [FromForm] string genreIds, IFormFile image)
+        {
+            // Add image to database
+            string imageFileUri = await _fileService.SaveFileAsync(image);
+            if (imageFileUri == null)
+            {
+                return BadRequest(new { error = "Image uploading error." });
+            }
+
             // Extract artist
             Artist artist = new Artist()
             {
-                Name = addArtistModel.Name,
-                Color = addArtistModel.Color,
-                ImageUrl = "https://localhost:7021/uploads/" + addArtistModel.Image.FileName
+                Name = name,
+                Color = color,
+                ImageUrl = "https://localhost:7021/uploads/" + imageFileUri
             };
 
             // Add to artist table
             int artistId = _databaseService.AddArtist(artist);
             if (artistId <= 0)
             {
-                return BadRequest(new { error = "Error adding artist to artist table" });
+                return BadRequest("Error adding artist to artist table");
             }
-            addArtistModel.Id = artistId;
+            artist.Id = artistId;
 
             // Add artist to genre relations
-            List<int> addedGenreIds = _databaseService.AddArtistGenres(artistId, addArtistModel.GenreIds);
+            List<int> addedGenreIds = _databaseService.AddArtistGenres(artistId, JsonConvert.DeserializeObject<List<int>>(genreIds));
             if (addedGenreIds.Count <= 0 || addedGenreIds == null)
             {
-                return BadRequest(new { error = "Error with adding artist to genre relations." });
+                return BadRequest("Error with adding artist to genre relations.");
             }
 
-            // Add photo to database
-            if (await _fileService.SaveFileAsync(addArtistModel.Image) == null)
+            return CreatedAtAction(nameof(GetArtists), new { id = artistId }, artist);
+        }
+
+        [HttpPut]
+        [Route("{id}")]
+        public async Task<ActionResult> UpdateArtist(int id, [FromForm] string name, [FromForm] string imageUrl, [FromForm] string color, [FromForm] string genreIds, IFormFile? image)
+        {
+            // Update image in database
+            string imageFileUri = "";
+            if (image != null)
             {
-                return BadRequest(new { error = "Image uploading error." });
+                _fileService.DeleteFile(imageUrl);
+
+                imageFileUri = await _fileService.SaveFileAsync(image);
+                if (imageFileUri == null)
+                {
+                    return BadRequest(new { error = "Image uploading error." });
+                }
             }
 
-            return CreatedAtAction(nameof(GetArtists), new { id = artistId }, addArtistModel);
+            // Extract artist
+            Artist artist = new Artist()
+            {
+                Name = name,
+                Color = color,
+                ImageUrl = string.IsNullOrEmpty(imageFileUri) ? imageUrl : "https://localhost:7021/uploads/" + imageFileUri
+            };
+
+            // Update artist in table
+            bool success = _databaseService.UpdateArtist(id, artist, JsonConvert.DeserializeObject<List<int>>(genreIds));
+            if (!success)
+            {
+                return BadRequest("Error updating artist in artist table");
+            }
+
+            return NoContent();
         }
 
         [HttpDelete]

@@ -223,6 +223,34 @@ namespace GroovyApi.Services
             List<Artist> list = enumerable.ToList();
             return list;
         }
+        public Dictionary<int, List<int>> GetArtistIdsOfSongs(List<int> songIds)
+        {
+            string ids = string.Join(", ", songIds.Select(id => id.ToString()));
+            DataTable dt = SelectQuery($"SELECT song_id, artist_id FROM song_artist WHERE song_id IN ({ids})");
+
+            Dictionary<int, List<int>> dict = dt.AsEnumerable()
+                .GroupBy(row => row.Field<int>("song_id"))
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Select(row => row.Field<int>("artist_id")).ToList()
+                );
+
+            return dict;
+        }
+        public Dictionary<int, List<int>> GetGenreIdsOfSongs(List<int> songIds)
+        {
+            string ids = string.Join(", ", songIds.Select(id => id.ToString()));
+            DataTable dt = SelectQuery($"SELECT song_id, genre_id FROM song_genre WHERE song_id IN ({ids})");
+
+            Dictionary<int, List<int>> dict = dt.AsEnumerable()
+                .GroupBy(row => row.Field<int>("song_id"))
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Select(row => row.Field<int>("genre_id")).ToList()
+                );
+
+            return dict;
+        }
         public List<Artist> GetArtistsOfGenre(int genreId)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
@@ -280,6 +308,53 @@ namespace GroovyApi.Services
 
             List<Song> list = enumerable.ToList();
             return list;
+        }
+        public List<Genre> GetGenresOfArtist(int artistId)
+        {
+            Dictionary<string, object> parameters = new Dictionary<string, object>
+            {
+                { "@ArtistId", artistId }
+            };
+            DataTable dt = SelectQuery("SELECT * FROM genre JOIN artist_genre ON genre.genre_id = artist_genre.genre_id WHERE artist_genre.artist_id = @ArtistId", parameters);
+            IEnumerable<Genre> enumerable = dt.AsEnumerable()
+             .Select(row => new Genre
+             {
+                 Id = row.Field<int>("genre_id"),
+                 Name = row.Field<string>("name"),
+                 Color = row.Field<string>("color"),
+             });
+
+            List<Genre> list = enumerable.ToList();
+            return list;
+        }
+        public List<Genre> GetGenresOfArtists(List<int> artistIds)
+        {
+            string ids = string.Join(", ", artistIds.Select(id => id.ToString()));
+            DataTable dt = SelectQuery($"SELECT * FROM genre JOIN artist_genre ON genre.genre_id = artist_genre.genre_id WHERE artist_genre.artist_id IN ({ids})");
+            IEnumerable<Genre> enumerable = dt.AsEnumerable()
+             .Select(row => new Genre
+             {
+                 Id = row.Field<int>("genre_id"),
+                 Name = row.Field<string>("name"),
+                 Color = row.Field<string>("color"),
+             });
+
+            List<Genre> list = enumerable.ToList();
+            return list;
+        }
+        public Dictionary<int, List<int>> GetGenreIdsOfArtists(List<int> artistIds)
+        {
+            string ids = string.Join(", ", artistIds.Select(id => id.ToString()));
+            DataTable dt = SelectQuery($"SELECT artist_id, genre_id FROM artist_genre WHERE artist_id IN ({ids})");
+
+            Dictionary<int, List<int>> dict = dt.AsEnumerable()
+                .GroupBy(row => row.Field<int>("artist_id"))
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Select(row => row.Field<int>("genre_id")).ToList()
+                );
+
+            return dict;
         }
 
 
@@ -392,6 +467,99 @@ namespace GroovyApi.Services
         }
 
 
+        // Update
+        public bool UpdateGenre(int id, Genre newGenre)
+        {
+            string query = "UPDATE genre SET name = @Name, color = @Color WHERE genre_id = @Id";
+            Dictionary<string, object> parameters = new Dictionary<string, object>
+            {
+                { "@Id", id },
+                { "@Name", newGenre.Name },
+                { "@Color", newGenre.Color }
+            };
+
+            int affectedRows = ExecuteNonQueryUpdateDelete(query, parameters);
+            return affectedRows > 0;
+        }
+        public bool UpdateArtist(int id, Artist newArtist, List<int> genreIds)
+        {
+            string query = "UPDATE artist SET name = @Name, image_url = @ImageUrl, color = @Color WHERE artist_id = @Id";
+            Dictionary<string, object> parameters = new Dictionary<string, object>
+            {
+                { "@Id", id },
+                { "@Name", newArtist.Name },
+                { "@ImageUrl", newArtist.ImageUrl },
+                { "@Color", newArtist.Color }
+            };
+
+            int affectedRows = ExecuteNonQueryUpdateDelete(query, parameters);
+            if (affectedRows <= 0)
+            {
+                return false;
+            }
+
+            bool success = DeleteArtistGenreRelations(id);
+            if (!success)
+            {
+                return false;
+            }
+
+            List<int> ids = AddArtistGenres(id, genreIds);
+            if (ids == null || ids.Count == 0)
+            {
+                return false;
+            }
+
+            return true;
+        }
+        public bool UpdateSong(int id, Song newSong, List<int> artistIds, List<int> genreIds)
+        {
+            string query = "UPDATE song SET title = @Title, cover_url = @CoverUrl, song_url = @SongUrl, color = @Color WHERE song_id = @Id";
+            Dictionary<string, object> parameters = new Dictionary<string, object>
+            {
+                { "@Id", id },
+                { "@Title", newSong.Title },
+                { "@CoverUrl", newSong.CoverUrl },
+                { "@SongUrl", newSong.SongUrl },
+                { "@Color", newSong.Color }
+            };
+
+            int affectedRows = ExecuteNonQueryUpdateDelete(query, parameters);
+            if (affectedRows <= 0)
+            {
+                return false;
+            }
+
+            // Delete old relations
+            bool success = DeleteSongArtistRelations(id);
+            if (!success)
+            {
+                return false;
+            }
+
+            success = DeleteSongGenreRelations(id);
+            if (!success)
+            {
+                return false;
+            }
+
+            // Add new relations
+            List<int> ids = AddSongArtists(id, artistIds);
+            if (ids == null || ids.Count == 0)
+            {
+                return false;
+            }
+
+            ids = AddSongGenres(id, genreIds);
+            if (ids == null || ids.Count == 0)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+
         // Delete
         public bool DeleteArtist(int artistId)
         {
@@ -421,6 +589,39 @@ namespace GroovyApi.Services
             Dictionary<string, object> parameters = new Dictionary<string, object>()
             {
                 { "@GenreId", genreId },
+            };
+
+            int affectedRows = ExecuteNonQueryUpdateDelete(query, parameters);
+            return affectedRows > 0;
+        }
+        public bool DeleteArtistGenreRelations(int artistId)
+        {
+            string query = "DELETE FROM artist_genre WHERE artist_id = @Id";
+            var parameters = new Dictionary<string, object>
+            {
+                { "@Id", artistId }
+            };
+
+            int affectedRows = ExecuteNonQueryUpdateDelete(query, parameters);
+            return affectedRows > 0;
+        }
+        public bool DeleteSongArtistRelations(int songId)
+        {
+            string query = "DELETE FROM song_artist WHERE song_id = @Id";
+            var parameters = new Dictionary<string, object>
+            {
+                { "@Id", songId }
+            };
+
+            int affectedRows = ExecuteNonQueryUpdateDelete(query, parameters);
+            return affectedRows > 0;
+        }
+        public bool DeleteSongGenreRelations(int songId)
+        {
+            string query = "DELETE FROM song_genre WHERE song_id = @Id";
+            var parameters = new Dictionary<string, object>
+            {
+                { "@Id", songId }
             };
 
             int affectedRows = ExecuteNonQueryUpdateDelete(query, parameters);

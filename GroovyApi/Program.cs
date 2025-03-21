@@ -24,6 +24,12 @@ namespace GroovyApi
 
             builder.Services.AddSingleton<FileService>();
             builder.Services.AddSingleton<DatabaseService>();
+            builder.Services.AddSingleton<YouTubeTrendingService>(provider =>
+            {
+                var configuration = provider.GetRequiredService<IConfiguration>();
+                var apiKey = configuration["YouTube:ApiKey"]; // reads API key from appsettings.json
+                return new YouTubeTrendingService(apiKey);
+            });
 
             var app = builder.Build();
 

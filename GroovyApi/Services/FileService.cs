@@ -18,22 +18,22 @@ namespace GroovyApi.Services
                 Directory.CreateDirectory(this.UploadsFolder);
             }
 
-            //var fileHash = await HashFile(file);
-            var existingFile = Directory.GetFiles(UploadsFolder).FirstOrDefault(f => Path.GetFileName(f) == file.FileName);
+            var fileHash = await HashFile(file);
+            var existingFile = Directory.GetFiles(UploadsFolder).FirstOrDefault(f => Path.GetFileName(f) == fileHash);
             if (existingFile != null)
             {
-                return $"/Uploads/{Path.GetFileName(existingFile)}";
+                return Path.GetFileName(existingFile);
             }
 
-            //var fileName = $"{fileHash}{Path.GetExtension(file.FileName)}";
-            var filePath = Path.Combine(this.UploadsFolder, file.FileName);
+            var fileName = $"{fileHash}{Path.GetExtension(file.FileName)}";
+            var filePath = Path.Combine(this.UploadsFolder, fileName);
 
             using (var stream = new FileStream(filePath, FileMode.Create))
             {
                 await file.CopyToAsync(stream);
             }
 
-            return $"/Uploads/{file.FileName}";
+            return fileName;
         }
 
         public FileStream? GetFile(string fileName)
@@ -49,8 +49,13 @@ namespace GroovyApi.Services
             return fileStream;
         }
 
-        public bool DeleteFile(string fileName)
+        public bool DeleteFile(string fileUri)
         {
+            // Take the hash from the URI
+            Uri uri = new Uri(fileUri);
+            string fileName = Path.GetFileName(uri.AbsolutePath);
+
+            // Delete
             var filePath = Path.Combine(this.UploadsFolder, fileName);
             if (!System.IO.File.Exists(filePath))
             {
@@ -61,10 +66,15 @@ namespace GroovyApi.Services
             return true;
         }
 
-        public bool DeleteFiles(List<string> fileNames)
+        public bool DeleteFiles(List<string> fileUris)
         {
-            foreach (string fileName in fileNames)
+            foreach (string fileUri in fileUris)
             {
+                // Take the hash from the URI
+                Uri uri = new Uri(fileUri);
+                string fileName = Path.GetFileName(uri.AbsolutePath);
+
+                // Delete
                 var filePath = Path.Combine(this.UploadsFolder, fileName);
                 if (!System.IO.File.Exists(filePath))
                 {
