@@ -181,10 +181,73 @@ namespace GroovyApi.Services
             List<Song> list = enumerable.ToList();
             return list;
         }
-        public DataTable GetRecommendedSongs()
+        public List<Song> GetRecommendedSongs(int userId)
         {
-            DataTable artists = SelectQuery("SELECT * FROM song ORDER BY clicks DESC LIMIT 20");
-            return artists;
+            string query = @"
+                SELECT * FROM (
+                    SELECT DISTINCT s.*
+                    FROM song s
+                    JOIN song_genre sg ON s.song_id = sg.song_id
+                    JOIN (
+                        SELECT genre_id 
+                        FROM user_genre_activity 
+                        WHERE user_id = @UserId
+                        GROUP BY genre_id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT 3
+                    ) AS TopGenres ON sg.genre_id = TopGenres.genre_id
+                    LIMIT 20
+
+                    UNION
+
+                    SELECT DISTINCT s.*
+                    FROM song s
+                    JOIN song_artist sa ON s.song_id = sa.song_id
+                    JOIN (
+                        SELECT artist_id 
+                        FROM user_artist_activity 
+                        WHERE user_id = @UserId
+                        GROUP BY artist_id
+                        ORDER BY COUNT(*) DESC
+                        LIMIT 3
+                    ) AS TopArtists ON sa.artist_id = TopArtists.artist_id
+                    LIMIT 20
+
+                    UNION
+
+                    SELECT DISTINCT s.*
+                    FROM song s
+                    JOIN favourite f ON s.song_id = f.song_id
+                    WHERE f.user_id = @UserId
+                    LIMIT 20
+
+                    UNION
+
+                    SELECT DISTINCT s.*
+                    FROM song s
+                    LIMIT 20
+                ) AS FinalResults
+                ORDER BY clicks DESC;
+            ";
+            Dictionary<string, object> parameters = new Dictionary<string, object>()
+            {
+                { "@UserId", userId }
+            };
+
+            DataTable dt = SelectQuery(query, parameters);
+            IEnumerable<Song> enumerable = dt.AsEnumerable()
+              .Select(row => new Song
+              {
+                  Id = row.Field<int>("song_id"),
+                  Title = row.Field<string>("title"),
+                  Color = row.Field<string>("color"),
+                  CoverUrl = row.Field<string>("cover_url"),
+                  SongUrl = row.Field<string>("song_url"),
+                  Clicks = row.Field<int>("clicks")
+              });
+
+            List<Song> list = enumerable.ToList();
+            return list;
         }
         public List<Song> GetAllSongs()
         {

@@ -35,6 +35,25 @@ namespace GroovyApi.Controllers
         }
 
         [HttpGet]
+        [Route("recommended")]
+        public ActionResult<List<Song>> GetRecommendedSongs([FromQuery] int userId, [FromQuery] int currentSongId = -1)
+        {
+            List<Song> songs = _databaseService.GetRecommendedSongs(userId);
+
+            if (songs == null || songs.Count <= 0)
+            {
+                return BadRequest($"User {userId} does not exist or there is a problem with DB");
+            }
+
+            if (currentSongId != -1)
+            {
+                songs.RemoveAll(s => s.Id == currentSongId);
+            }
+
+            return songs;
+        }
+
+        [HttpGet]
         [Route("{id}/related")]
         public ActionResult<List<Song>> GetRelatedSongs(int id)
         {
@@ -43,12 +62,10 @@ namespace GroovyApi.Controllers
 
             List<Song> songs = _databaseService.GetSongsOfArtists(artistIds);
 
-            Random rng = new Random();
-            while (songs.Count > 5)
-            {
-                int deleteIndex = rng.Next(songs.Count);
-                songs.RemoveAt(deleteIndex);
-            }
+            Console.WriteLine(string.Join(", ", artistIds));
+            Console.WriteLine(string.Join(", ", songs.Select(s => s.Id)));
+
+            songs.RemoveAll(s => s.Id == id);
 
             return songs;
         }

@@ -25,6 +25,14 @@ namespace GroovyApi.Controllers
         }
 
         [HttpGet]
+        [Route("{id}/songs")]
+        public ActionResult<List<Song>> GetSongsOfArtist(int id)
+        {
+            List<Song> songs = _databaseService.GetSongsOfArtist(id);
+            return Ok(songs);
+        }
+
+        [HttpGet]
         [Route("{id}/related")]
         public ActionResult<List<Artist>> GetRelatedArtists(int id)
         {
@@ -32,6 +40,8 @@ namespace GroovyApi.Controllers
             List<int> genreIds = genres.Select(g => g.Id).ToList();
 
             List<Artist> artists = _databaseService.GetArtistsOfGenres(genreIds);
+
+            artists.RemoveAll(a => a.Id == id);
 
             Random rng = new Random();
             while (artists.Count > 5)
