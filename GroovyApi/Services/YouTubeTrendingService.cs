@@ -19,6 +19,10 @@ namespace GroovyApi.Services
             });
         }
 
+        /// <summary>
+        /// Returns a list with trending songs.
+        /// </summary>
+        /// <returns></returns>
         public async Task<List<TrendingSong>> GetTrendingSongsAsync()
         {
             var videosRequest = _youTubeService.Videos.List("snippet");
@@ -34,7 +38,8 @@ namespace GroovyApi.Services
                 Title = item.Snippet.Title, // video title
                 Artist = item.Snippet.ChannelTitle, // the CHANNEL title. may not always be the artist name but it usually is
                 ThumbnailUrl = item.Snippet.Thumbnails?.Medium.Url, // returns a medium sized thumbnail. NOT SQUARE !!!! dont know how to get it cropped :/
-                MusicLink = $"https://www.youtube.com/watch?v={item.Id}" // returns the link of the video
+                MusicLink = $"https://www.youtube.com/watch?v={item.Id}", // returns the link of the video
+                VideoId = item.Id
             }).ToList();
 
             return trendingSongs;

@@ -54,6 +54,19 @@ namespace GroovyApi.Controllers
         }
 
         [HttpGet]
+        [Route("search")]
+        public ActionResult<List<Song>> GetSearchedSongs([FromQuery] string searchTerm)
+        {
+            List<Song> songs = _databaseService.GetSearchedSongs(searchTerm);
+            if (songs == null || songs.Count == 0)
+            {
+                return new List<Song>();
+            }
+
+            return songs;
+        }
+
+        [HttpGet]
         [Route("artists")]
         public ActionResult<Dictionary<int, List<int>>> GetSongArtistRelations()
         {
@@ -96,6 +109,26 @@ namespace GroovyApi.Controllers
         public async Task<ActionResult<List<TrendingSong>>> GetTrendingSongs()
         {
             List<TrendingSong> songs = await _youTubeTrendingService.GetTrendingSongsAsync();
+            return songs;
+        }
+
+        [HttpPost]
+        [Route("trending")]
+        public async Task<ActionResult<List<TrendingSong>>> PostTrendingSongs()
+        {
+            List<TrendingSong> songs = await _youTubeTrendingService.GetTrendingSongsAsync();
+            if (songs == null || songs.Count == 0)
+            {
+                return NotFound(new { error = "Could not get trending songs." });
+            }
+
+            List<string> ids = songs.Select(s => s.VideoId).ToList();
+            List<string> savedPaths = await _fileService.SaveYoutubeSongFiles(ids);
+            if (savedPaths == null || savedPaths.Count == 0)
+            {
+                return BadRequest(new { error = "Could not save songs, check for problems with GET." });
+            }
+
             return songs;
         }
 
@@ -151,6 +184,41 @@ namespace GroovyApi.Controllers
 
 
             return CreatedAtAction(nameof(GetSongs), new { id = songId }, song);
+        }
+
+        [HttpPost]
+        [Route("click")]
+        public ActionResult TrackSongAndArtistsAndGenresClick([FromBody] SongActivityModel songActivity)
+        {
+            if (songActivity.SongId <= 0)
+            {
+                return BadRequest($"Invalid song id {songActivity.SongId}.");
+            }
+
+            // Track song click
+            int affectedRows = _databaseService.AddSongClick(songActivity.SongId);
+            if (affectedRows == null || affectedRows <= 0)
+            {
+                return BadRequest($"Song {songActivity.SongId} does not exist.");
+            }
+
+            // Track user-artist clicks for all artists of song
+            List<int> artistIds = _databaseService.GetArtistsOfSong(songActivity.SongId).Select(a => a.Id).ToList();
+            int affectedRowsArtists = _databaseService.AddBatchUserArtistClick(songActivity.UserId, artistIds);
+            if (affectedRowsArtists == null || affectedRowsArtists <= 0)
+            {
+                return BadRequest($"Error adding artist relations to song {songActivity.SongId}.");
+            }
+
+            // Track user-genre clicks for all genres of song
+            List<int> genreIds = _databaseService.GetGenresOfArtists(artistIds).Select(g => g.Id).ToList();
+            int affectedRowsGenres = _databaseService.AddBatchUserGenreClick(songActivity.UserId, genreIds);
+            if (affectedRowsGenres == null || affectedRowsGenres <= 0)
+            {
+                return BadRequest($"Error adding genre relations to song {songActivity.SongId}.");
+            }
+
+            return Ok(affectedRows);
         }
 
         [HttpPut]

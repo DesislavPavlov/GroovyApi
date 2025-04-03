@@ -31,6 +31,19 @@ namespace GroovyApi
                 return new YouTubeTrendingService(apiKey);
             });
 
+            // CORS policy
+            var allowedOrigins = "AllowedOrigins";
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy(name: allowedOrigins,
+                    policy =>
+                    {
+                        policy.WithOrigins("https://localhost:7262")
+                              .AllowAnyMethod()
+                              .AllowAnyHeader();
+                    });
+            });
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -39,6 +52,8 @@ namespace GroovyApi
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+
+            app.UseCors(allowedOrigins);
 
             app.UseHttpsRedirection();
 

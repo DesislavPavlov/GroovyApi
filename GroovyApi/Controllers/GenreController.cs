@@ -36,6 +36,19 @@ namespace GroovyApi.Controllers
             return CreatedAtAction(nameof(GetGenres), new { id = genreId }, genre);
         }
 
+        [HttpPost]
+        [Route("click")]
+        public ActionResult<GenreActivityModel> TrackGenreClick([FromBody] GenreActivityModel genreActivity)
+        {
+            if (genreActivity == null || genreActivity.GenreId <= 0 || genreActivity.UserId <= 0)
+            {
+                return BadRequest("Invalid artist-activity data");
+            }
+
+            int id = _databaseService.AddUserGenreClick(genreActivity.UserId, genreActivity.GenreId);
+            return Ok(id);
+        }
+
         [HttpPut]
         [Route("{id}")]
         public ActionResult UpdateGenre(int id, [FromBody] Genre genre)

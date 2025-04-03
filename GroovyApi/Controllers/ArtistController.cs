@@ -79,6 +79,33 @@ namespace GroovyApi.Controllers
             return CreatedAtAction(nameof(GetArtists), new { id = artistId }, artist);
         }
 
+        [HttpPost]
+        [Route("click")]
+        public ActionResult TrackArtistAndGenresClick([FromBody] ArtistActivityModel artistActivity)
+        {
+            if (artistActivity == null || artistActivity.ArtistId <= 0 || artistActivity.UserId <= 0)
+            {
+                return BadRequest("Invalid artist-activity data");
+            }
+
+            // Track user-artist click
+            int idOrAffectedRows = _databaseService.AddUserArtistClick(artistActivity.UserId, artistActivity.ArtistId);
+            if (idOrAffectedRows == null || idOrAffectedRows <= 0)
+            {
+                return BadRequest($"Artist {artistActivity.ArtistId} or user does not exist.");
+            }
+
+            // Track user-genre clicks for all genres of artist
+            List<int> genreIds = _databaseService.GetGenresOfArtist(artistActivity.ArtistId).Select(g => g.Id).ToList();
+            int affectedRowsGenres = _databaseService.AddBatchUserGenreClick(artistActivity.UserId, genreIds);
+            if (affectedRowsGenres == null || affectedRowsGenres <= 0)
+            {
+                return BadRequest($"Error adding genre relations to artist {artistActivity.ArtistId}.");
+            }
+
+            return Ok(idOrAffectedRows);
+        }
+
         [HttpPut]
         [Route("{id}")]
         public async Task<ActionResult> UpdateArtist(int id, [FromForm] string name, [FromForm] string imageUrl, [FromForm] string color, [FromForm] string genreIds, IFormFile? image)
