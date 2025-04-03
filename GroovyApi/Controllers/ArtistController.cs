@@ -25,6 +25,14 @@ namespace GroovyApi.Controllers
         }
 
         [HttpGet]
+        [Route("{id}")]
+        public ActionResult<Artist> GetArtistById(int id)
+        {
+            Artist artist = _databaseService.GetArtistById(id);
+            return Ok(artist);
+        }
+
+        [HttpGet]
         [Route("{id}/songs")]
         public ActionResult<List<Song>> GetSongsOfArtist(int id)
         {
