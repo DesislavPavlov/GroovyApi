@@ -266,6 +266,21 @@ namespace GroovyApi.Services
             List<Song> list = enumerable.ToList();
             return list;
         }
+        public List<TrendingSong> GetTrendingSongs()
+        {
+            DataTable dt = SelectQuery("SELECT * FROM song_trending");
+            IEnumerable<TrendingSong> enumerable = dt.AsEnumerable()
+              .Select(row => new TrendingSong
+              {
+                  Id = row.Field<int>("song_id"),
+                  Title = row.Field<string>("title"),
+                  ThumbnailUrl = row.Field<string>("cover_url"),
+                  MusicLink = row.Field<string>("song_url"),
+              });
+
+            List<TrendingSong> list = enumerable.ToList();
+            return list;
+        }
         public List<Artist> GetArtistsOfSong(int songId)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
@@ -550,6 +565,23 @@ namespace GroovyApi.Services
 
             int resultId = ExecuteNonQueryInsert(query, parameters);
             return resultId;
+        }
+        public int AddTrendingSongs(List<TrendingSong> songs)
+        {
+            Dictionary<string, object> parameters = new Dictionary<string, object>();
+
+            List<string> values = new List<string>();
+
+            for (int i = 0; i < songs.Count; i++)
+            {
+                values.Add($"(@Title{i}, @CoverUrl{i}, @SongUrl{i})");
+                parameters[$"@Title{i}"] = songs[i].Title;
+                parameters[$"@CoverUrl{i}"] = songs[i].ThumbnailUrl;
+                parameters[$"@SongUrl{i}"] = songs[i].MusicLink;
+            }
+
+            List<int> ids = ExecuteBatchInsert($"INSERT INTO song_trending (title, cover_url, song_url) VALUES {string.Join(",", values)}; SELECT LAST_INSERT_ID();", parameters);
+            return ids.Count;
         }
         public List<int> AddArtistGenres(int artistId, List<int> genreIds)
         {
@@ -856,6 +888,11 @@ namespace GroovyApi.Services
             int affectedRows = ExecuteNonQueryUpdateDelete(query, parameters);
             return affectedRows > 0;
         }
+        public bool DeleteTrendingSongs()
+        {
+            int affectedRows = ExecuteNonQueryUpdateDelete("DELETE FROM song_trending");
+            return affectedRows > 0;
+        }
         public bool DeleteGenre(int genreId)
         {
             string query = "DELETE FROM genre WHERE genre_id = @GenreId";
@@ -1103,12 +1140,14 @@ namespace GroovyApi.Services
                         cmd.ExecuteNonQuery();
 
 
-                        int firstId = Convert.ToInt32(new MySqlCommand("SELECT LAST_INSERT_ID();", conn).ExecuteScalar());
+                        //int firstId = Convert.ToInt32(new MySqlCommand("SELECT LAST_INSERT_ID();", conn).ExecuteScalar()); 
+                        insertedIds.Add(Convert.ToInt32(cmd.LastInsertedId));
 
-                        for (int i = 0; i < parameters.Count; i++)
-                        {
-                            insertedIds.Add(firstId + i);
-                        }
+
+                        //for (int i = 0; i < parameters.Count; i++)
+                        //{
+                        //    insertedIds.Add(firstId + i);
+                        //}
                     }
                     conn.Close();
                 }

@@ -35,7 +35,7 @@ namespace GroovyApi.Services
 
             var trendingSongs = videosResponse.Items.Select(item => new TrendingSong
             {
-                Title = item.Snippet.Title, // video title
+                Title = CleanTitle(item.Snippet.Title), // video title
                 Artist = item.Snippet.ChannelTitle, // the CHANNEL title. may not always be the artist name but it usually is
                 ThumbnailUrl = item.Snippet.Thumbnails?.Medium.Url, // returns a medium sized thumbnail. NOT SQUARE !!!! dont know how to get it cropped :/
                 MusicLink = $"https://www.youtube.com/watch?v={item.Id}", // returns the link of the video
@@ -43,6 +43,13 @@ namespace GroovyApi.Services
             }).ToList();
 
             return trendingSongs;
+
+
+            string CleanTitle(string title)
+            {
+                List<string> substrings = title.Split('/', '|').ToList();
+                return substrings[0];
+            }
         }
     }
 }

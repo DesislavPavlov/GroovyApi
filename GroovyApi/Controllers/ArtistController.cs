@@ -127,7 +127,7 @@ namespace GroovyApi.Controllers
 
             // Track user-artist click
             int idOrAffectedRows = _databaseService.AddUserArtistClick(artistActivity.UserId, artistActivity.ArtistId);
-            if (idOrAffectedRows == null || idOrAffectedRows <= 0)
+            if (idOrAffectedRows <= 0)
             {
                 return BadRequest($"Artist {artistActivity.ArtistId} or user does not exist.");
             }
@@ -135,7 +135,7 @@ namespace GroovyApi.Controllers
             // Track user-genre clicks for all genres of artist
             List<int> genreIds = _databaseService.GetGenresOfArtist(artistActivity.ArtistId).Select(g => g.Id).ToList();
             int affectedRowsGenres = _databaseService.AddBatchUserGenreClick(artistActivity.UserId, genreIds);
-            if (affectedRowsGenres == null || affectedRowsGenres <= 0)
+            if (affectedRowsGenres <= 0)
             {
                 return BadRequest($"Error adding genre relations to artist {artistActivity.ArtistId}.");
             }

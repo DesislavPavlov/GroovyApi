@@ -125,7 +125,7 @@ namespace GroovyApi.Controllers
         [Route("trending")]
         public async Task<ActionResult<List<TrendingSong>>> GetTrendingSongs()
         {
-            List<TrendingSong> songs = await _youTubeTrendingService.GetTrendingSongsAsync();
+            List<TrendingSong> songs = _databaseService.GetTrendingSongs();
             return songs;
         }
 
@@ -133,17 +133,39 @@ namespace GroovyApi.Controllers
         [Route("trending")]
         public async Task<ActionResult<List<TrendingSong>>> PostTrendingSongs()
         {
+            // Get new trending songs
             List<TrendingSong> songs = await _youTubeTrendingService.GetTrendingSongsAsync();
             if (songs == null || songs.Count == 0)
             {
                 return NotFound(new { error = "Could not get trending songs." });
             }
 
+            // Save trending to file system
             List<string> ids = songs.Select(s => s.VideoId).ToList();
-            List<string> savedPaths = await _fileService.SaveYoutubeSongFiles(ids);
+            List<string> savedPaths = await _fileService.SaveYoutubeSongFilesAndDeleteOld(ids);
             if (savedPaths == null || savedPaths.Count == 0)
             {
                 return BadRequest(new { error = "Could not save songs, check for problems with GET." });
+            }
+
+            // Replace links with saved paths
+            for (int i = 0; i < songs.Count; i++)
+            {
+                songs[i].MusicLink = savedPaths[i];
+            }
+
+            // Delete old records from DB
+            bool success = _databaseService.DeleteTrendingSongs();
+            if (!success)
+            {
+                return BadRequest("Could not delete trending songs.");
+            }
+
+            // Add new trending songs to DB
+            int addedIdsCount = _databaseService.AddTrendingSongs(songs);
+            if (addedIdsCount <= 0)
+            {
+                return BadRequest("Could not add trending songs.");
             }
 
             return songs;

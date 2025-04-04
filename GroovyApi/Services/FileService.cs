@@ -7,6 +7,7 @@ namespace GroovyApi.Services
     public class FileService
     {
         private string uploadsFolder => Path.Combine(Directory.GetCurrentDirectory(), "Uploads");
+        private string trendingFolder => Path.Combine(Directory.GetCurrentDirectory(), "Uploads/Trending");
         private readonly YoutubeClient _youtubeClient;
 
         public FileService()
@@ -14,27 +15,37 @@ namespace GroovyApi.Services
             _youtubeClient = new YoutubeClient();
         }
 
-        public async Task<string?> SaveFileAsync(IFormFile file)
+        public async Task<string?> SaveFileAsync(IFormFile file, bool trending = false)
         {
             if (file == null || file.Length == 0)
             {
                 return null;
             }
 
-            if (!Directory.Exists(this.uploadsFolder))
+            string pathToSave = "";
+            if (trending)
             {
-                Directory.CreateDirectory(this.uploadsFolder);
+                pathToSave = this.trendingFolder;
+            }
+            else
+            {
+                pathToSave = this.uploadsFolder;
+            }
+
+            if (!Directory.Exists(pathToSave))
+            {
+                Directory.CreateDirectory(pathToSave);
             }
 
             var fileHash = await HashFile(file);
-            var existingFile = Directory.GetFiles(uploadsFolder).FirstOrDefault(f => Path.GetFileName(f) == fileHash);
+            var existingFile = Directory.GetFiles(pathToSave).FirstOrDefault(f => Path.GetFileName(f) == fileHash);
             if (existingFile != null)
             {
                 return Path.GetFileName(existingFile);
             }
 
             var fileName = $"{fileHash}{Path.GetExtension(file.FileName)}";
-            var filePath = Path.Combine(this.uploadsFolder, fileName);
+            var filePath = Path.Combine(pathToSave, fileName);
 
             using (var stream = new FileStream(filePath, FileMode.Create))
             {
@@ -95,8 +106,20 @@ namespace GroovyApi.Services
             return true;
         }
 
-        public async Task<List<string>> SaveYoutubeSongFiles(List<string> videoIds)
+        public async Task<List<string>> SaveYoutubeSongFilesAndDeleteOld(List<string> videoIds)
         {
+            // Delete old files
+            if (Directory.Exists(this.trendingFolder))
+            {
+                string[] files = Directory.GetFiles(this.trendingFolder);
+
+                foreach (string file in files)
+                {
+                    System.IO.File.Delete(file);
+                }
+            }
+
+            // Add new files
             var savedFilePaths = new List<string>();
 
             foreach (string videoId in videoIds)
@@ -104,13 +127,13 @@ namespace GroovyApi.Services
                 string videoUrl = $"https://www.youtube.com/watch?v={videoId}";
                 IFormFile formFile = await ConvertYoutubeUrlToIFormFile(videoUrl);
 
-                savedFilePaths.Add(await SaveFileAsync(formFile));
+                savedFilePaths.Add("https://localhost:7021/uploads/trending/" + await SaveFileAsync(formFile, true));
             }
 
             return savedFilePaths;
         }
 
-        public async Task<IFormFile> ConvertYoutubeUrlToIFormFile(string videoUrl)
+        private async Task<IFormFile> ConvertYoutubeUrlToIFormFile(string videoUrl)
         {
             var video = await _youtubeClient.Videos.GetAsync(videoUrl);
 
