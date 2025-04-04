@@ -51,13 +51,6 @@ namespace GroovyApi.Controllers
 
             artists.RemoveAll(a => a.Id == id);
 
-            Random rng = new Random();
-            while (artists.Count > 5)
-            {
-                int deleteIndex = rng.Next(artists.Count);
-                artists.RemoveAt(deleteIndex);
-            }
-
             return artists;
         }
 

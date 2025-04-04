@@ -22,12 +22,25 @@ namespace GroovyApi.Controllers
             List<Genre> genres = _databaseService.GetGenres();
             return Ok(genres);
         }
+
         [HttpGet]
         [Route("{id}")]
         public ActionResult<Genre> GetGenreById(int id)
         {
             Genre genre = _databaseService.GetGenreById(id);
             return Ok(genre);
+        }
+
+        [HttpGet]
+        [Route("{id}/artists")]
+        public ActionResult<List<Artist>> GetGenreArtists(int id)
+        {
+            List<Artist> artists = _databaseService.GetArtistsOfGenre(id);
+            if (artists == null || artists.Count == 0)
+            {
+                return new List<Artist>();
+            }
+            return Ok(artists);
         }
 
         [HttpPost]
