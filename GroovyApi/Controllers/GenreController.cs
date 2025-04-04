@@ -22,6 +22,13 @@ namespace GroovyApi.Controllers
             List<Genre> genres = _databaseService.GetGenres();
             return Ok(genres);
         }
+        [HttpGet]
+        [Route("{id}")]
+        public ActionResult<Genre> GetGenreById(int id)
+        {
+            Genre genre = _databaseService.GetGenreById(id);
+            return Ok(genre);
+        }
 
         [HttpPost]
         public ActionResult AddGenre([FromBody] Genre genre)
