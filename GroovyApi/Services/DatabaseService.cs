@@ -153,6 +153,23 @@ namespace GroovyApi.Services
             List<Genre> list = enumerable.ToList();
             return list;
         }
+        public Genre GetGenreById(int id)
+        {
+            Dictionary<string, object> parameters = new Dictionary<string, object>
+            {
+                { "@GenreId", id }
+            };
+            DataTable genreDT = SelectQuery("SELECT * FROM genre WHERE genre_id = @GenreId", parameters);
+            DataRow genreRow = genreDT.Rows[0];
+
+            Genre genre = new Genre()
+            {
+                Id = int.Parse(genreRow["genre_id"].ToString()),
+                Name = genreRow["name"].ToString(),
+                Color = genreRow["color"].ToString()
+            };
+            return genre;
+        }
         public List<Song> GetSearchedSongs(string searchTerm)
         {
             if (string.IsNullOrWhiteSpace(searchTerm))
