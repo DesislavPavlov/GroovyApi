@@ -84,6 +84,32 @@ namespace GroovyApi.Controllers
         }
 
         [HttpGet]
+        [Route("{id}/artists")]
+        public ActionResult<List<Artist>> GetSongArtists(int id)
+        {
+            List<Artist> artists = _databaseService.GetArtistsOfSong(id);
+            if (artists == null || artists.Count <= 0)
+            {
+                return new List<Artist>();
+            }
+
+            return Ok(artists);
+        }
+
+        [HttpGet]
+        [Route("{id}/genres")]
+        public ActionResult<List<Genre>> GetSongGenres(int id)
+        {
+            List<Genre> genres = _databaseService.GetGenresOfSong(id);
+            if (genres == null || genres.Count <= 0)
+            {
+                return new List<Genre>();
+            }
+
+            return Ok(genres);
+        }
+
+        [HttpGet]
         [Route("artists")]
         public ActionResult<Dictionary<int, List<int>>> GetSongArtistRelations()
         {

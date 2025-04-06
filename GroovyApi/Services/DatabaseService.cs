@@ -420,6 +420,25 @@ namespace GroovyApi.Services
             List<Song> list = enumerable.ToList();
             return list;
         }
+        public List<Genre> GetGenresOfSong(int songId)
+        {
+            Dictionary<string, object> parameters = new Dictionary<string, object>
+            {
+                { "@SongId", songId }
+            };
+
+            DataTable dt = SelectQuery("SELECT * FROM genre g JOIN song_genre sg ON g.genre_id = sg.genre_id WHERE sg.song_id = @SongId", parameters);
+            IEnumerable<Genre> enumerable = dt.AsEnumerable()
+              .Select(row => new Genre
+              {
+                  Id = row.Field<int>("genre_id"),
+                  Name = row.Field<string>("name"),
+                  Color = row.Field<string>("color"),
+              });
+
+            List<Genre> list = enumerable.ToList();
+            return list;
+        }
         public List<Genre> GetGenresOfArtist(int artistId)
         {
             Dictionary<string, object> parameters = new Dictionary<string, object>
