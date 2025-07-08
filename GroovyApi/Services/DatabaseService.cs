@@ -202,6 +202,7 @@ namespace GroovyApi.Services
         {
             string query = @"
                 SELECT * FROM (
+                    (
                     SELECT DISTINCT s.*
                     FROM song s
                     JOIN song_genre sg ON s.song_id = sg.song_id
@@ -214,9 +215,11 @@ namespace GroovyApi.Services
                         LIMIT 3
                     ) AS TopGenres ON sg.genre_id = TopGenres.genre_id
                     LIMIT 20
+                    )
 
                     UNION
 
+                    (
                     SELECT DISTINCT s.*
                     FROM song s
                     JOIN song_artist sa ON s.song_id = sa.song_id
@@ -229,20 +232,25 @@ namespace GroovyApi.Services
                         LIMIT 3
                     ) AS TopArtists ON sa.artist_id = TopArtists.artist_id
                     LIMIT 20
+                    )
 
                     UNION
 
+                    (
                     SELECT DISTINCT s.*
                     FROM song s
                     JOIN favourite f ON s.song_id = f.song_id
                     WHERE f.user_id = @UserId
                     LIMIT 20
+                    )
 
                     UNION
 
+                    (
                     SELECT DISTINCT s.*
                     FROM song s
                     LIMIT 20
+                    )
                 ) AS FinalResults
                 ORDER BY clicks DESC;
             ";
