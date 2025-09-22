@@ -22,7 +22,7 @@ This project exposes a **RESTful API** for use by frontend clients.
 ## 🛠️ Technologies Used
 
 - ASP.NET Core 7 Web API  
-- [Free SQL Database (MySQL)](https://www.freesqldatabase.com/)  
+- MySQL Relational Database  
 - [Swagger](https://swagger.io/) for API documentation  
 - CORS configuration for frontend connectivity  
 
@@ -31,13 +31,13 @@ This project exposes a **RESTful API** for use by frontend clients.
 ## 📦 Installation & Setup
 
 
-> ⚠️ The application connects to a private hosted MySQL database using [FreeSQLDatabase.com](https://www.freesqldatabase.com/).  
-> If you're interested in testing the API with live data, feel free to contact me for access to the credentials used in the [Groovy Demo](https://github.com/DesislavPavlov/Groovy).
+> ⚠️ The application needs to connect to a locally hosted MySQL relational database.  
+> If you're interested in testing the API yourself, make sure to set up such DB using the .sql file in the repository.  
 
 ### 🔧 Prerequisites
 
 - [.NET 7 SDK](https://dotnet.microsoft.com/download/dotnet)
-- [FreeSQLDatabase](https://www.mysql.com/downloads/)
+- Local MySQL Database
 
 ### ⚙️ Setup Steps
 
@@ -57,7 +57,7 @@ Update it with valid credentials:
 ```json
 "StoredFilesPath": "Uploads",
 "ConnectionStrings": {
-  "DefaultConnection": "your-freesqlserver-connection-string"
+  "DefaultConnection": "your-mysqldb-connection-string"
 },
 "YouTube": {
   "ApiKey": "AIzaSyB7gUvF-zC7HzHGpf5RgHN-7w1c7bW_EiQ"
